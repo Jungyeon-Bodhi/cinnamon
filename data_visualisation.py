@@ -6,10 +6,12 @@ Created on Fri March 14 15:22:04 2025
 @author: Bodhi Global Analysis (Jungyeon Lee)
 """
 
-import matplotlib.pyplot as plt
-import matplotlib.cm as cm
 import pandas as pd
+import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib.cm as cm
+import matplotlib.image as mpimg
+from PIL import Image
 
 bodhi_blue = (0.0745, 0.220, 0.396)
 bodhi_grey = (0.247, 0.29, 0.322)
@@ -55,7 +57,7 @@ def visual(data, title, fontsize, output_file):
     plt.savefig(output_file, bbox_inches='tight', dpi=600)
     plt.close()
     
-def visual2(data, year, title, fontsize, output_file, ylim=None, padding = None):
+def visual1(data, year, title, fontsize, output_file, ylim=None, padding = None):
     df = pd.DataFrame(data)
     
     colors = cm.tab10(range(len(df.index)))
@@ -101,6 +103,143 @@ def visual2(data, year, title, fontsize, output_file, ylim=None, padding = None)
     
     plt.savefig(output_file, bbox_inches='tight', dpi=600)
     plt.close()
+    
+def visual2(data, year, title, fontsize, output_file, ylim=None, padding=None):
+    df = pd.DataFrame(data)
+    
+    num_countries = len(df["Country"])
+    df[year] = df[year].fillna(0)
+    num = len(year)
+    half = int(num_countries // 2)
+    
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(11, 6), sharey=True)  # 2 rows, 1 column, shared y-axis
+    pil_img = Image.open('asean_map.png')  # Adjust path if necessary
+    width, height = pil_img.size
+    pil_img_resized = pil_img.resize((int(width // 1.6), int(height // 1.6)))  # Resize to half size
+
+    img_resized = np.array(pil_img_resized)
+    
+    fig.patch.set_facecolor('none')
+    fig.patch.set_alpha(0.0)  # Make the background fully transparent
+    bar_width = 0.17
+    
+    index1 = np.arange(half) 
+    index2 = np.arange(half) + half 
+    bodhi_blue = np.array([0.0745, 0.220, 0.396])
+    colors = [bodhi_blue + (i * 0.1) for i in range(len(year))]
+
+    bars1 = []
+    for i, year in enumerate(year):
+        bars = ax1.bar(index1 + i * bar_width, df[year][:half], bar_width, label=str(year), color=colors[i])
+        bars1.append(bars)
+        for bar in bars:
+            bar_height = bar.get_height()
+            text_color = 'white' if bar_height < 0 else 'black'  # Set text color based on the bar's height
+            ax1.text(bar.get_x() + bar.get_width() / 2, bar_height, f'{bar_height:.2f}', 
+                     ha='center', va='bottom', fontsize=fontsize, color=text_color)
+    
+    bars2 = []
+    for i, year in enumerate(year):
+        bars = ax2.bar(index2 + i * bar_width, df[year][half:], bar_width, label=str(year), color=colors[i])
+        bars2.append(bars)
+        for bar in bars:
+            bar_height = bar.get_height()
+            text_color = 'white' if bar_height < 0 else 'black'  # Set text color based on the bar's height
+            ax2.text(bar.get_x() + bar.get_width() / 2, bar_height, f'{bar_height:.2f}', 
+                     ha='center', va='bottom', fontsize=fontsize, color=text_color)
+    
+    xticks = np.arange(num_countries)
+
+    if ylim != None:
+        ax1.set_ylim(ylim[0], ylim[1])
+        ax2.set_ylim(ylim[0], ylim[1])
+        range_y = np.arange(ylim[0],ylim[1],ylim[2])
+        ax1.set_yticks(range_y)
+        ax2.set_yticks(range_y)
+    
+    ax1.set_xticks(index1 + bar_width * 2)
+    ax1.set_xticklabels(df["Country"][:half])
+    
+    ax2.set_xticks(index2 + bar_width * 2) 
+    ax2.set_xticklabels(df["Country"][half:]) 
+    
+    ax1.set_title(f"{title}", fontsize = fontsize + 3)
+    ax1.set_xlabel("")
+    ax1.set_ylabel("")
+    ax2.set_xlabel("")
+    ax2.set_ylabel("")
+    ax2.set_title('')
+
+    fig.patch.set_facecolor('white') 
+    fig.subplots_adjust(hspace=0.0)   
+    
+    ax1.spines['bottom'].set_visible(False)
+    ax2.spines['top'].set_visible(False)
+
+    fig.figimage(img_resized, xo=300, yo=75, alpha=0.1, zorder=0)
+    
+    handles, labels = [], []
+    for i, year in enumerate(year[:num]): 
+        bars = bars1[i] + bars2[i] 
+        handles.append(bars[0]) 
+        labels.append(str(year))
+    
+    fig.legend(handles=handles, labels=labels, loc="upper center", bbox_to_anchor=(0.5, 0.45), 
+               ncol=5, fontsize=7)
+
+    
+    plt.tight_layout()
+    plt.savefig(output_file, dpi=600, transparent=True, bbox_inches='tight')
+    plt.show()
+
+def visual3(data, years, title, fontsize, output_file, ylim=None, padding=None):
+    df = pd.DataFrame(data)
+    num_countries = len(df["Country"])
+    df[years] = df[years].fillna(0)
+    num = len(years)
+    
+    fig, ax1 = plt.subplots(figsize=(12, 8))
+    
+    pil_img = Image.open('asean_map.png')
+    pil_img_resized = pil_img.resize((int(pil_img.width // 1.6), int(pil_img.height // 1.6)))
+    img_resized = np.array(pil_img_resized)
+    
+    fig.patch.set_alpha(0.0)
+    bar_width = 0.19
+    index1 = np.arange(num_countries)
+    
+    bodhi_blue = np.array([0.0745, 0.220, 0.396])
+    colors = [np.clip(bodhi_blue + (i * 0.1), 0, 1) for i in range(num)]
+    
+    bars1 = []
+    for i, year in enumerate(years):
+        bars = ax1.bar(index1 + i * bar_width, df[year], bar_width, label=str(year), color=colors[i])
+        bars1.append(bars)
+        for bar in bars:
+            bar_height = bar.get_height()
+            text_color = 'white' if bar_height < 0 else 'black'
+            ax1.text(bar.get_x() + bar.get_width() / 2, bar_height, f'{bar_height}', 
+                     ha='center', va='bottom', fontsize=8, color=text_color)
+    
+    ax1.set_xticks(index1 + bar_width * (num / 2))
+    ax1.set_xticklabels(df["Country"], fontsize= fontsize)
+    
+    if ylim is not None:
+        ax1.set_ylim(ylim[0], ylim[1])
+        ax1.set_yticks(np.arange(ylim[0], ylim[1] + ylim[2], ylim[2]))
+    
+    ax1.set_title(title, fontsize=fontsize + 8)
+    ax1.set_xlabel("")
+    ax1.set_ylabel("")
+    
+    fig.figimage(img_resized, xo=340, yo=120, alpha=0.1, zorder=0)
+    
+    fig.legend(handles=[bars1[i][0] for i in range(num)], labels=[str(year) for year in years],
+               loc="upper center", bbox_to_anchor=(0.5, 0.95), ncol=min(num, 3), fontsize=7)
+    
+    plt.tight_layout()
+    plt.savefig(output_file, dpi=600, transparent=True, bbox_inches='tight')
+    plt.show()
 
 def economic_dimension():
     title1 = "Economic Indicator: Exchange rate (%)"
@@ -220,7 +359,7 @@ def environment_dimension():
         2022 : [0, 2800, 560, 156000,  0, 22000],
         2023 : [0, 46000, 1100, 206000, 0, 2800]}
     
-    visual2(data3, years, title3, fontsize = 9, output_file = 'visuals/env_displacement.png')
+    visual3(data3, years, title3, fontsize = 9, output_file = 'visuals/env_displacement.png')
     
     title3_1 = 'Environmental Indicator: Environment-related Displacement'
     years = [2019, 2020, 2021, 2022, 2023]
@@ -232,7 +371,7 @@ def environment_dimension():
         2022 : [308000, 13000, 5500000,  353000],
         2023 : [238000, 995000, 2600000,  68000]}
     
-    visual2(data3_1, years, title3_1, fontsize = 9, output_file = 'visuals/env_displacement2.png')
+    visual3(data3_1, years, title3_1, fontsize = 9, output_file = 'visuals/env_displacement2.png')
     
     title4 = 'Environmental Indicator: Exposure to hazards'
     years = [2021, 2022, 2023, 2024, 2025]
@@ -358,13 +497,10 @@ def human_dimension():
 
 def societal_dimension(): 
     title1 = 'Societal Indicator: Income inequality'
-    years = [2014, 2016, 2017, 2018, 2019, 2020, 2021, 2022]
+    years = [2018, 2019, 2020, 2021, 2022]
     data1 = {
             "Country": ["Brunei","Cambodia", "Indonesia", "Laos", "Malaysia", "Myanmar","Philippines", 'Singapore',"Thailand","Vietnam"],
-            2014 : [np.nan, 2.70, 2.05, np.nan, 1.99, np.nan, np.nan, np.nan, 1.79, 1.46],
-            2016 : [1.00, np.nan, 1.98, np.nan, np.nan, np.nan, np.nan, np.nan, 1.78, 1.50],
-            2017 : [np.nan, np.nan, 1.93, np.nan, 1.96, 1.44, np.nan,np.nan,1.76, np.nan],
-            2018 : [np.nan, np.nan, 1.90, np.nan, np.nan, np.nan, 2.09, np.nan, 1.75, 1.54],
+            2018 : [1.00, 2.70, 1.90, np.nan, 1.96, 1.44, 2.09, np.nan, 1.75, 1.54],
             2019 : [np.nan, np.nan, 1.84, 1.94, 1.98, np.nan, np.nan, np.nan, 1.65, np.nan],
             2020 : [np.nan, np.nan, 1.85, np.nan, np.nan, np.nan, np.nan, np.nan, 1.65, 1.64],
             2021: [np.nan, np.nan, 1.87, np.nan, np.nan, np.nan, 1.92, np.nan, 1.66, np.nan],
@@ -379,7 +515,7 @@ def societal_dimension():
             2019 : [np.nan, 0.188, 0.069, 0.277, 0.261, 0.263, 0.110, 0.182, 0.418, 0.575],
             2020 : [np.nan, 0.188, 0.069, 0.277, 0.261, 0.263, 0.071, 0.182, 0.418, 0.575],
             2021 : [np.nan, 0.188, 0.069, 0.277, 0.261, 0.201, 0.071, 0.453, 0.418, 0.369]}
-    visual2(data2, years, title2, fontsize = 9, output_file = 'visuals/societal_inter_trust.png', ylim=(0, 0.65, 0.02), padding = 0.002)
+    visual2(data2, years, title2, fontsize = 9, output_file = 'visuals/societal_inter_trust.png', ylim=(0, 0.65, 0.02))
     
     title3 = 'Societal Indicator: Urbanisation rate'
     years = [2019, 2020, 2021, 2022, 2023]
@@ -390,7 +526,7 @@ def societal_dimension():
             2021 : [1.3, 3.3, 1.8, 3.2, 1.8, 1.7, 1.5, -4.2, 1.5, 2.8],
             2022 : [1.2, 3.1, 1.9, 3.2, 1.9, 1.7, 1.4, 3.3, 1.4, 2.6],
             2023 : [1.2, 3.1, 1.9, 3.1, 1.9, 1.8, 1.5, 4.9, 1.3, 2.5]}
-    visual2(data3, years, title3, fontsize = 9, output_file = 'visuals/societal_urban_rate.png', ylim=(-4.5, 5.2, 0.3), padding = 0.002)
+    visual2(data3, years, title3, fontsize = 9, output_file = 'visuals/societal_urban_rate.png', ylim=(-4.5, 5.2, 0.3))
     
     title4 = 'Societal Indicator: Participatory environment for CSOs'
     years = [2020, 2021, 2022, 2023, 2024]
@@ -414,7 +550,7 @@ def societal_dimension():
             2021 : [0, 15000,  5, 129000,  0, 9920],
             2022 : [0, 28000,  560, 156000,  0, 22000],
             2023 : [0, 46000, 1100, 206000,  0, 2800],}
-    visual2(data5, years, title5, fontsize = 9, output_file = 'visuals/societal_displacement1.png', ylim=(0, 210000, 10000))
+    visual3(data5, years, title5, fontsize = 9, output_file = 'visuals/societal_displacement1.png', ylim=(0, 210000, 10000))
     
     title6 = 'Societal Indicator: Forced displacement (High risk group)'
     years = [2017, 2019, 2020, 2021, 2022, 2023]
@@ -426,7 +562,7 @@ def societal_dimension():
             2021 : [75580,  605818, 5854145,  780000],
             2022 : [315092,  1019395, 5575507,   353000],
             2023 : [240176,  2292900, 2755046,  68000],}
-    visual2(data6, years, title6, fontsize = 9, output_file = 'visuals/societal_displacement2.png', ylim=(60000, 6000000, 200000))
+    visual3(data6, years, title6, fontsize = 9, output_file = 'visuals/societal_displacement2.png', ylim=(60000, 6000000, 200000))
 
 title1 = 'Multidimensional Fragility Framework - ASEAN'
 data1 = {
